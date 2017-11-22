@@ -2,14 +2,12 @@ from flask import Flask, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
 import requests
 import os
-import socket
 import checkpy
 import checkpy.lib
 import re
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
-import os
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = "./uploads"
