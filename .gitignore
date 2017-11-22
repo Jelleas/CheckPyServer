@@ -1,4 +1,6 @@
-uploads/*
+uploads/
+node/uploads/
+server/uploads/
 *.json
 
 # Byte-compiled / optimized / DLL files
