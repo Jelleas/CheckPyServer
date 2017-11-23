@@ -1,10 +1,10 @@
 from flask import Flask, request, redirect, url_for, jsonify
 from werkzeug.utils import secure_filename
+import json
 import requests
 import os
-import checkpy
-import checkpy.lib
 import re
+import filemanager
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
@@ -46,13 +46,30 @@ def home():
 def test(studentnumber, filename):
     with open(_filepath(filename, studentnumber)) as f:
         response = requests.post("http://localhost:4000/upload", files = {'file' : f})
-        return _testJsonToHTML(response.json())
-    return "file not found"
+    return _testJsonToHTML(response.json())
+
+@app.route("/<studentnumber>/<submission>/<filename>")
+def testDropbox(studentnumber, submission, filename):
+    studentnumber = secure_filename(studentnumber)
+    submission = secure_filename(submission)
+    filename = secure_filename(filename)
+    path = "/{}/{}/{}".format(studentnumber, submission, filename)
+
+    if filemanager.isCached(path):
+        with filemanager.getCached(path) as jsonFile:
+            testJson = json.loads(jsonFile.read())
+    else:
+        with filemanager.get(path) as f:
+            response = requests.post("http://localhost:4000/upload", files = {'file' : f})
+            testJson = response.json()
+            filemanager.cache(json.dumps(testJson), path)
+
+    return _testJsonToHTML(testJson)
 
 def _allowedFile(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ['py']
 
-def _testJsonToHTML(json):
+def _testJsonToHTML(testJson):
     html = \
 """
 <head>
@@ -68,8 +85,8 @@ def _testJsonToHTML(json):
 </body>
 """
 
-    output = _checkpyOutputToHTML(json["output"])
-    source = highlight(json["source"], PythonLexer(), HtmlFormatter(linenos=True, style='monokai'))
+    output = _checkpyOutputToHTML(testJson["output"])
+    source = highlight(testJson["source"], PythonLexer(), HtmlFormatter(linenos=True, style='monokai'))
     style = HtmlFormatter().get_style_defs('.highlight')
 
     return html.format(src = source, output = output, style = style)
